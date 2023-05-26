@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use OpenAI\Laravel\Facades\OpenAI;
 use Illuminate\Support\Facades\Http;
@@ -10,12 +11,15 @@ class ChatGPTController extends Controller
 {
     public function index()
     {
-        return view('chatgpt.index');
+        $user = User::all();
+        return view('chatgpt.index', [
+            'user' => $user
+        ]);
     }
 
     public function ask(Request $request)
     {
-        
+
         $search = $request->input('prompt');
 
         $data = Http::withHeaders([
@@ -38,9 +42,8 @@ class ChatGPTController extends Controller
                 "stop" => ["1."],
             ])
             ->json();
-            
-            return view('chatgpt.response', ['response' => $data['choices'][0]['message']['content']]);
-        
+
+        return view('chatgpt.response', ['response' => $data['choices'][0]['message']['content']]);
     }
     // public function ask(Request $request)
     // {

@@ -6,15 +6,20 @@
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">Ask something to ChatGPT</div>
-                    
+
                     <div class="card-body">
                         <form method="POST" action="{{ route('chatgpt.ask') }}">
                             @csrf
 
                             <div class="form-group">
-                                <input type="text" class="form-control text-center" name="prompt" placeholder="Ask something...">
+                                <input type="text" class="form-control text-center" name="prompt"
+                                    placeholder="Ask something...">
                             </div>
-
+                            <div>
+                                @foreach ($user as $u)
+                                    {{ $u }}
+                                @endforeach
+                            </div>
                             <button type="submit" class="btn btn-primary">Send</button>
                         </form>
                     </div>
