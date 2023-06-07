@@ -2,66 +2,70 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Chat;
 use App\Models\User;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use OpenAI\Laravel\Facades\OpenAI;
+use Illuminate\Support\Carbon;
+use App\Services\ChatGPTService;
+use App\Services\ChatSessionService;
 use Illuminate\Support\Facades\Http;
 
 class ChatGPTController extends Controller
 {
     public function index()
     {
+        
         $user = User::all();
+        // Logged user chats
+        $chats = Chat::where('user_id', auth()->id())->where( 'created_at', '>', Carbon::now()->subDays(7))->latest()->get();
+
         return view('chatgpt.index', [
-            'user' => $user
+            'user' => $user,
+            'chats' => $chats
         ]);
     }
-
-    public function ask(Request $request)
+    public function new(ChatGPTService $chatGptService)
     {
+        // Initializing new chat number
+        $newChatNo = $chatGptService->startNewChat();
 
-        $search = $request->input('prompt');
-
-        $data = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
-        ])
-            ->post("https://api.openai.com/v1/chat/completions", [
-                "model" => "gpt-3.5-turbo",
-                'messages' => [
-                    [
-                        "role" => "user",
-                        "content" => $search
-                    ]
-                ],
-                'temperature' => 0.5,
-                "max_tokens" => 200,
-                "top_p" => 1.0,
-                "frequency_penalty" => 0.52,
-                "presence_penalty" => 0.5,
-                "stop" => ["1."],
-            ])
-            ->json();
-
-        return view('chatgpt.response', ['response' => $data['choices'][0]['message']['content']]);
+        return view('chatgpt.response', [
+            'chatNo' => $newChatNo
+        ]);
     }
-    // public function ask(Request $request)
-    // {
-    //     $prompt = $request->input('prompt');
-
-    //     $response = OpenAI::completions()->create([
-    //         'model' => 'text-davinci-003',
-    //         'prompt' => $prompt,
-    //         'temperature' => 1,
-    //         'max_tokens' => 300,
-    //         'top_p' => 1.0,
-    //         'frequency_penalty' => 0.0,
-    //         'presence_penalty' => 0.0,
-    //     ]);
-
-    //     return view('chatgpt.response', ['response' => $response->choices[0]->text]);
-    // }
+    public function question(Request $request, ChatGPTService $chatGptService)
+    {
+        // $request->whenHas('chatNo')
+        if ($request->input('chatNo') == null) {
+            $chatNo = $chatGptService->startNewChat();
+        } else {
+            $chatNo = $request->input('chatNo');
+        }
 
 
+        $question = $request->input('prompt');
+        // Sending POST request to chatGPT API and fetching answer
 
+
+        $response = $chatGptService->answerChatGPT($chatNo, $question);
+        $chatNo = $response['chatNo'];
+
+        $chats = Chat::where('user_id', auth()->id())->latest()->get();
+
+        // Fetching all chats in current chat session with pagination
+        $currentChat = Chat::where('chatNo', '=', $chatNo)->where( 'created_at', '>', Carbon::now()->subDays(7))->latest()->paginate(3);
+        return view('chatgpt.response', ['chatNo' => $chatNo, 'chats' => $chats,'currentChat'=>$currentChat]);
+    }
+
+    public function show(Chat $chat, ChatGPTService $customService)
+    {
+        $chats = Chat::get();
+        $chat->answer = $customService->splitIntoSentences($chat->answer);
+
+        return view('chatgpt.show', [
+            'myChat' => $chat,
+            'chats' => $chats
+        ]);
+    }
 }

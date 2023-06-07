@@ -11,32 +11,13 @@ use Illuminate\Support\Facades\Http;
 class ChatGPTController extends Controller
 {
     use HttpResponses;
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-    // public function ask(Request $request)
-    // {
-    //     $prompt = $request->input('prompt');
-
-    //     $response = OpenAI::completions()->create([
-    //         'model' => 'text-davinci-003',
-    //         'prompt' => $prompt,
-    //         'temperature' => 1,
-    //         'max_tokens' => 300,
-    //         'top_p' => 1.0,
-    //         'frequency_penalty' => 0.0,
-    //         'presence_penalty' => 0.0,
-    //     ]);
-
-    //     return $this->success('',  $response->choices[0]->text, 200);
-    // }
+  
     public function ask(Request $request)
     {
         $search = $request->input('prompt');
+        if($search == ''){
+            return $this->error($search,'Prompt cannot be empty...',404);
+        }
 
         $data = Http::withHeaders([
             'Content-Type' => 'application/json',
@@ -61,35 +42,5 @@ class ChatGPTController extends Controller
 
         return response()->json($data['choices'][0]['message']['content'], 200, array(), JSON_PRETTY_PRINT);
     }
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
+    
 }
